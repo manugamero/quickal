@@ -11,7 +11,7 @@ import {
 
 export const maxDuration = 30;
 
-const SYSTEM_PROMPT = `Eres un asistente inteligente de calendario integrado en Sensa Workspace. 
+const SYSTEM_PROMPT = `Eres un asistente inteligente de calendario integrado en Quickal. 
 Tu trabajo es ayudar al usuario a gestionar su Google Calendar usando lenguaje natural en español o inglés.
 
 Capacidades:

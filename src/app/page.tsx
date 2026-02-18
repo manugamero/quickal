@@ -16,7 +16,7 @@ export default async function Home() {
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-white">
-                Sensa Workspace
+                Quickal
               </h1>
               <p className="mt-2 text-base text-zinc-400">
                 Gestiona tu calendario con inteligencia artificial
@@ -59,7 +59,7 @@ export default async function Home() {
         <div className="flex items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2.5">
             <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600" />
-            <span className="text-base font-semibold tracking-tight">Sensa</span>
+            <span className="text-base font-semibold tracking-tight">Quickal</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-2 sm:flex">

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sensa Workspace",
-  description: "Connect your Google account and view your calendar events",
+  title: "Quickal",
+  description: "Tu calendario inteligente con AI",
 };
 
 export default function RootLayout({

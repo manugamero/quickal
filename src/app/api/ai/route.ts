@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { streamText, tool } from "ai";
 import { z } from "zod";
 import {
@@ -11,24 +11,32 @@ import {
 
 export const maxDuration = 30;
 
-const SYSTEM_PROMPT = `Eres un asistente inteligente de calendario integrado en Quickal. 
-Tu trabajo es ayudar al usuario a gestionar su Google Calendar usando lenguaje natural en español o inglés.
+function buildSystemPrompt() {
+  const now = new Date();
+  const date = now.toLocaleDateString("es-ES", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const time = now.toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-Capacidades:
-- Crear eventos (con título, fecha, hora, ubicación, descripción, videollamada Meet)
-- Editar eventos existentes
-- Eliminar eventos
-- Buscar y listar eventos
+  return `Eres el asistente de Quickal, una app de calendario inteligente.
+Ayudas a gestionar Google Calendar con lenguaje natural (español/inglés).
+
+Hoy: ${date}. Hora: ${time}. Zona: Europe/Madrid.
 
 Reglas:
-- Cuando el usuario pida crear un evento, extrae toda la información posible del mensaje.
-- Si falta información crítica (como la fecha u hora), pregunta amablemente.
-- Para horas, usa el formato ISO 8601. La zona horaria por defecto es Europe/Madrid.
-- Hoy es ${new Date().toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}. La hora actual es ${new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}.
-- Si el usuario dice "mañana", "el lunes", "la próxima semana", calcula la fecha correcta.
-- Si el usuario pide añadir videollamada o Meet, usa addMeet: true.
-- Responde siempre de forma concisa y confirma las acciones realizadas.
-- Cuando crees o edites un evento, muestra un resumen claro de lo que hiciste.`;
+- Extrae toda la info posible del mensaje del usuario.
+- Si falta fecha u hora, pregunta.
+- Usa ISO 8601 para fechas. Si dicen "mañana", "el lunes", etc., calcula la fecha.
+- Si piden videollamada/Meet, usa addMeet: true.
+- Sé conciso. Confirma cada acción con un resumen breve.
+- Si el usuario solo saluda, responde brevemente y pregunta en qué ayudar.`;
+}
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -39,13 +47,12 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
-    system: SYSTEM_PROMPT,
+    model: google("gemini-2.0-flash"),
+    system: buildSystemPrompt(),
     messages,
     tools: {
       createEvent: tool({
-        description:
-          "Create a new Google Calendar event. Use when the user wants to schedule something.",
+        description: "Create a new Google Calendar event.",
         inputSchema: z.object({
           summary: z.string().describe("Event title"),
           description: z.string().optional().describe("Event description"),

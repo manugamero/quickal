@@ -1,37 +1,37 @@
 import { auth } from "@/auth";
-import { google } from "googleapis";
-import { NextResponse } from "next/server";
+import { listEvents, createEvent } from "@/lib/google-calendar";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
-
   if (!session?.accessToken) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   try {
-    const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({ access_token: session.accessToken });
-
-    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-
-    const now = new Date();
-    const oneMonthLater = new Date();
-    oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-
-    const response = await calendar.events.list({
-      calendarId: "primary",
-      timeMin: now.toISOString(),
-      timeMax: oneMonthLater.toISOString(),
-      maxResults: 50,
-      singleEvents: true,
-      orderBy: "startTime",
-    });
-
-    return NextResponse.json({ events: response.data.items || [] });
+    const query = req.nextUrl.searchParams.get("q") || undefined;
+    const events = await listEvents(query);
+    return NextResponse.json({ events });
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Failed to fetch events";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.accessToken) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const event = await createEvent(body);
+    return NextResponse.json({ event });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to create event";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

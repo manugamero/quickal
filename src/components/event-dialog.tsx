@@ -2,19 +2,6 @@
 
 import { useState, useEffect } from "react";
 
-interface EventData {
-  id?: string;
-  summary: string;
-  description: string;
-  location: string;
-  startDate: string;
-  startTime: string;
-  endDate: string;
-  endTime: string;
-  addMeet: boolean;
-  attendees: string;
-}
-
 interface CalendarEvent {
   id: string;
   summary?: string;
@@ -29,6 +16,18 @@ interface EventDialogProps {
   onClose: () => void;
   onSaved: () => void;
   editEvent?: CalendarEvent | null;
+}
+
+interface EventData {
+  summary: string;
+  description: string;
+  location: string;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  addMeet: boolean;
+  attendees: string;
 }
 
 function toLocalDate(iso?: string) {
@@ -58,12 +57,7 @@ const defaultForm = (): EventData => {
   };
 };
 
-export function EventDialog({
-  open,
-  onClose,
-  onSaved,
-  editEvent,
-}: EventDialogProps) {
+export function EventDialog({ open, onClose, onSaved, editEvent }: EventDialogProps) {
   const [form, setForm] = useState<EventData>(defaultForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -71,7 +65,6 @@ export function EventDialog({
   useEffect(() => {
     if (editEvent) {
       setForm({
-        id: editEvent.id,
         summary: editEvent.summary || "",
         description: editEvent.description || "",
         location: editEvent.location || "",
@@ -95,191 +88,134 @@ export function EventDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.summary.trim()) {
-      setError("El título es obligatorio");
+      setError("Título requerido");
       return;
     }
-
     setSaving(true);
     setError("");
-
-    const startDateTime = `${form.startDate}T${form.startTime}:00`;
-    const endDateTime = `${form.endDate}T${form.endTime}:00`;
 
     const payload = {
       summary: form.summary,
       description: form.description || undefined,
       location: form.location || undefined,
-      startDateTime,
-      endDateTime,
+      startDateTime: `${form.startDate}T${form.startTime}:00`,
+      endDateTime: `${form.endDate}T${form.endTime}:00`,
       addMeet: form.addMeet,
-      attendees: form.attendees
-        ? form.attendees.split(",").map((e) => e.trim())
-        : undefined,
+      attendees: form.attendees ? form.attendees.split(",").map((e) => e.trim()) : undefined,
     };
 
     try {
       const url = isEdit ? `/api/calendar/${editEvent!.id}` : "/api/calendar";
-      const method = isEdit ? "PATCH" : "POST";
-
       const res = await fetch(url, {
-        method,
+        method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Error al guardar");
+        throw new Error(data.error || "Error");
       }
-
       onSaved();
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+      setError(err instanceof Error ? err.message : "Error");
     } finally {
       setSaving(false);
     }
   };
 
+  const inputClass =
+    "w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text placeholder-text-tertiary outline-none transition-colors focus:border-text-secondary";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
-          <h2 className="text-lg font-semibold">
-            {isEdit ? "Editar evento" : "Nuevo evento"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-border bg-bg-secondary shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <p className="text-sm font-medium text-text">
+            {isEdit ? "Editar" : "Nuevo evento"}
+          </p>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-400">Título *</label>
-            <input
-              type="text"
-              value={form.summary}
-              onChange={(e) => setForm({ ...form, summary: e.target.value })}
-              placeholder="Reunión de equipo"
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-5">
+          <input
+            type="text"
+            value={form.summary}
+            onChange={(e) => setForm({ ...form, summary: e.target.value })}
+            placeholder="Título"
+            className={inputClass}
+            autoFocus
+          />
+
+          <div className="grid grid-cols-2 gap-2">
+            <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className={inputClass} />
+            <input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} className={inputClass} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className={inputClass} />
+            <input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} className={inputClass} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-400">Fecha inicio</label>
-              <input
-                type="date"
-                value={form.startDate}
-                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-400">Hora inicio</label>
-              <input
-                type="time"
-                value={form.startTime}
-                onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+          <input
+            type="text"
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+            placeholder="Ubicación"
+            className={inputClass}
+          />
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-400">Fecha fin</label>
-              <input
-                type="date"
-                value={form.endDate}
-                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-400">Hora fin</label>
-              <input
-                type="time"
-                value={form.endTime}
-                onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+          <textarea
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows={2}
+            placeholder="Notas"
+            className={`${inputClass} resize-none`}
+          />
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-400">Ubicación</label>
-            <input
-              type="text"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-              placeholder="Sala 3 / https://..."
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
+          <input
+            type="text"
+            value={form.attendees}
+            onChange={(e) => setForm({ ...form, attendees: e.target.value })}
+            placeholder="Invitados (emails separados por coma)"
+            className={inputClass}
+          />
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-400">Descripción</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={2}
-              placeholder="Notas del evento..."
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-400">
-              Invitados (emails separados por coma)
-            </label>
-            <input
-              type="text"
-              value={form.attendees}
-              onChange={(e) => setForm({ ...form, attendees: e.target.value })}
-              placeholder="maria@email.com, juan@email.com"
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          <label className="flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 cursor-pointer transition hover:border-zinc-600">
+          <label className="flex items-center gap-2 cursor-pointer py-1">
             <input
               type="checkbox"
               checked={form.addMeet}
               onChange={(e) => setForm({ ...form, addMeet: e.target.checked })}
-              className="h-4 w-4 rounded accent-blue-500"
+              className="h-3.5 w-3.5 rounded accent-accent"
             />
-            <div className="flex items-center gap-2">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
-              </svg>
-              <span className="text-sm text-zinc-300">Añadir videollamada de Google Meet</span>
-            </div>
+            <span className="text-xs text-text-secondary">Añadir Google Meet</span>
           </label>
 
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
+          {error && <p className="text-xs text-danger">{error}</p>}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800"
+              className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-tertiary"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-50"
+              className="flex-1 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-accent-text transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
-              {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear evento"}
+              {saving ? "..." : isEdit ? "Guardar" : "Crear"}
             </button>
           </div>
         </form>
